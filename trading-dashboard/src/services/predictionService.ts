@@ -1,6 +1,4 @@
 import { stockAPI } from './api';
-import { backendDependencyController, DependencyStatus, ExecutionStep } from './backendDependencyController';
-import { BackendErrorHandler, BackendError } from './backendErrorHandler';
 import type { PredictionItem } from '../types';
 
 // Types
@@ -16,23 +14,19 @@ export interface PredictOutcome {
 interface ProgressUpdate {
   step: 'checking_dependencies' | 'predicting' | 'complete' | 'error';
   description: string;
-  progress: number; // 0-100
+  progress: number;
   symbol: string;
   error?: string;
   canRetry?: boolean;
   suggestedAction?: string;
 }
 
-// Error classes
 class PredictionError extends Error {
   constructor(message: string, public code: string, public details?: any) {
     super(message);
     this.name = 'PredictionError';
   }
 }
-
-// Frontend must not interpret backend dependency state
-// Backend handles all dependency orchestration automatically
 
 export class PredictionService {
   private static instance: PredictionService;
@@ -47,114 +41,16 @@ export class PredictionService {
     return PredictionService.instance;
   }
 
-  // Add progress listener
   addProgressListener(listener: (update: ProgressUpdate) => void): void {
     this.listeners.add(listener);
   }
 
-  // Remove progress listener
   removeProgressListener(listener: (update: ProgressUpdate) => void): void {
     this.listeners.delete(listener);
   }
 
-  // Notify all listeners
   private notifyProgress(update: ProgressUpdate): void {
     this.listeners.forEach(listener => listener(update));
-  }
-
-  /**
-   * Check backend dependencies for a symbol using the dependency controller
-   */
-  async checkDependencies(symbol: string, horizon: string = 'intraday'): Promise<DependencyStatus> {
-    try {
-      // First check if backend is reachable
-      await stockAPI.health();
-      
-      // Use the dependency controller to check status
-      return await backendDependencyController.checkDependencies(symbol, horizon);
-    } catch (error: any) {
-      console.error(`[PredictionService] Backend health check failed:`, error);
-      const analyzed = BackendErrorHandler.analyzeError(error);
-      
-      if (analyzed.type === 'connection') {
-        throw new PredictionError('Cannot connect to backend server', 'CONNECTION_ERROR');
-      }
-      
-      // Return safe defaults for other errors
-      return {
-        dataExists: false,
-        featuresExist: false,
-        modelsExist: false,
-        canPredict: false,
-        missingSteps: ['fetch_data', 'calculate_features', 'train_models']
-      };
-    }
-  }
-
-  /**
-   * Ensure all data dependencies are met before prediction
-   */
-  async ensureDataDependencies(
-    symbol: string,
-    horizon: string = 'intraday',
-    dependencyStatus?: DependencyStatus
-  ): Promise<DependencyStatus> {
-    const status = dependencyStatus || await this.checkDependencies(symbol, horizon);
-
-    this.notifyProgress({
-      step: 'checking_dependencies',
-      description: `Analyzing ${symbol}...`,
-      progress: 10,
-      symbol
-    });
-
-    // If all dependencies are met, return immediately
-    if (status.canPredict) {
-      this.notifyProgress({
-        step: 'checking_dependencies',
-        description: `Analyzing ${symbol}...`,
-        progress: 30,
-        symbol
-      });
-      return status;
-    }
-
-    // Use the dependency controller to ensure all steps are completed
-    try {
-      const finalStatus = await backendDependencyController.ensureDependencies(
-        symbol,
-        horizon,
-        (step: ExecutionStep) => {
-          // Silent execution - show neutral progress only
-          let progress = 20;
-
-          switch (step.step) {
-            case 'fetch_data':
-              progress = step.completed ? 40 : 30;
-              break;
-            case 'calculate_features':
-              progress = step.completed ? 60 : 50;
-              break;
-            case 'train_models':
-              progress = step.completed ? 80 : 70;
-              break;
-          }
-
-          this.notifyProgress({
-            step: 'checking_dependencies',
-            description: `Analyzing ${symbol}...`,
-            progress,
-            symbol,
-            error: step.error
-          });
-        }
-      );
-
-      return finalStatus;
-    } catch (error: any) {
-      const analyzed = BackendErrorHandler.analyzeError(error);
-      throw new PredictionError(analyzed.userMessage, 'BACKEND_ERROR');
-    }
   }
 
   /**
@@ -354,9 +250,6 @@ export class PredictionService {
     };
   }
 
-  /**
-   * Batch predict multiple symbols
-   */
   async batchPredict(
     symbols: string[],
     horizon: 'intraday' | 'short' | 'long' = 'intraday',
@@ -369,7 +262,6 @@ export class PredictionService {
   ): Promise<Record<string, PredictOutcome>> {
     const results: Record<string, PredictOutcome> = {};
 
-    // Process symbols sequentially to avoid overwhelming the backend
     for (const symbol of symbols) {
       const outcome = await this.predict(symbol, horizon, options);
       results[outcome.symbol] = outcome;
@@ -377,36 +269,6 @@ export class PredictionService {
 
     return results;
   }
-
-  /**
-   * Get dependency status for a symbol
-   */
-  async getDependencyStatus(symbol: string, horizon: string = 'intraday'): Promise<DependencyStatus> {
-    return await this.checkDependencies(symbol, horizon);
-  }
-
-  /**
-   * Get user-friendly status message
-   */
-  getStatusMessage(status: DependencyStatus): string {
-    return backendDependencyController.getStatusMessage(status);
-  }
-
-  /**
-   * Get estimated time for missing dependencies
-   */
-  getEstimatedTime(missingSteps: string[]): number {
-    return backendDependencyController.getEstimatedTime(missingSteps);
-  }
-
-  /**
-   * Check if an error indicates missing dependencies that can be auto-resolved
-   */
-  canAutoResolveError(error: any): boolean {
-    return BackendErrorHandler.shouldAutoResolve(error);
-  }
 }
 
-// Export singleton instance and related types
 export const predictionService = PredictionService.getInstance();
-export type { DependencyStatus, ExecutionStep, BackendError };
