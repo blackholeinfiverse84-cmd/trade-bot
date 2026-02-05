@@ -92,12 +92,12 @@ SECURITY_LOG_PATH = Path("data/logs/security.jsonl")
 # JWT authentication removed - no login models needed
 
 class PredictRequest(BaseModel):
-    symbols: List[str] = Field(..., min_length=1, max_length=50)
-    horizon: str = Field(default="intraday")
-    risk_profile: Optional[str] = Field(None)
-    stop_loss_pct: Optional[float] = Field(None, ge=0.1, le=50.0)
-    capital_risk_pct: Optional[float] = Field(None, ge=0.1, le=100.0)
-    drawdown_limit_pct: Optional[float] = Field(None, ge=0.1, le=100.0)
+    symbols: List[str] = Field(default=["AAPL"], min_length=1, max_length=50, examples=[["AAPL", "GOOGL", "TCS.NS"]])
+    horizon: str = Field(default="intraday", examples=["intraday", "short", "long"])
+    risk_profile: Optional[str] = Field(default="moderate", examples=["low", "moderate", "high"])
+    stop_loss_pct: Optional[float] = Field(default=2.0, ge=0.1, le=50.0)
+    capital_risk_pct: Optional[float] = Field(default=1.0, ge=0.1, le=100.0)
+    drawdown_limit_pct: Optional[float] = Field(default=5.0, ge=0.1, le=100.0)
     
     @field_validator('symbols', mode='after')
     @classmethod
@@ -129,11 +129,11 @@ class PredictRequest(BaseModel):
 
 
 class ScanAllRequest(BaseModel):
-    symbols: List[str] = Field(..., min_length=1, max_length=100)
-    horizon: str = Field(default="intraday")
+    symbols: List[str] = Field(default=["AAPL", "GOOGL", "MSFT"], min_length=1, max_length=100, examples=[["AAPL", "GOOGL", "MSFT", "TCS.NS"]])
+    horizon: str = Field(default="intraday", examples=["intraday", "short", "long"])
     min_confidence: float = Field(default=0.3, ge=0.0, le=1.0)
-    stop_loss_pct: Optional[float] = Field(None, ge=0.1, le=50.0)
-    capital_risk_pct: Optional[float] = Field(None, ge=0.1, le=100.0)
+    stop_loss_pct: Optional[float] = Field(default=2.0, ge=0.1, le=50.0)
+    capital_risk_pct: Optional[float] = Field(default=1.0, ge=0.1, le=100.0)
     
     @field_validator('symbols', mode='after')
     @classmethod
@@ -154,8 +154,8 @@ class ScanAllRequest(BaseModel):
 
 
 class AnalyzeRequest(BaseModel):
-    symbol: str = Field(..., min_length=1, max_length=20)
-    horizons: List[str] = Field(default=["intraday"], min_length=1, max_length=3)
+    symbol: str = Field(default="AAPL", min_length=1, max_length=20, examples=["AAPL", "TCS.NS", "RELIANCE.NS"])
+    horizons: List[str] = Field(default=["intraday"], min_length=1, max_length=3, examples=[["intraday"], ["intraday", "short", "long"]])
     stop_loss_pct: float = Field(default=2.0, ge=0.1, le=50.0)
     capital_risk_pct: float = Field(default=1.0, ge=0.1, le=100.0)
     drawdown_limit_pct: float = Field(default=5.0, ge=0.1, le=100.0)
@@ -182,10 +182,10 @@ class AnalyzeRequest(BaseModel):
 
 
 class FeedbackRequest(BaseModel):
-    symbol: str = Field(..., min_length=1, max_length=20)
-    predicted_action: str = Field(...)
-    user_feedback: str = Field(...)
-    actual_return: Optional[float] = Field(None, ge=-100.0, le=1000.0)
+    symbol: str = Field(default="AAPL", min_length=1, max_length=20, examples=["AAPL", "TCS.NS"])
+    predicted_action: str = Field(default="LONG", examples=["LONG", "SHORT", "HOLD"])
+    user_feedback: str = Field(default="correct", examples=["correct", "incorrect"])
+    actual_return: Optional[float] = Field(default=2.5, ge=-100.0, le=1000.0, examples=[2.5, -1.2, 5.0])
     
     @field_validator('symbol', mode='after')
     @classmethod
@@ -225,8 +225,8 @@ class FeedbackRequest(BaseModel):
 
 
 class TrainRLRequest(BaseModel):
-    symbol: str = Field(..., min_length=1, max_length=20)
-    horizon: str = Field(default="intraday")
+    symbol: str = Field(default="AAPL", min_length=1, max_length=20, examples=["AAPL", "TCS.NS", "GOOGL"])
+    horizon: str = Field(default="intraday", examples=["intraday", "short", "long"])
     n_episodes: int = Field(default=10, ge=10, le=100)
     force_retrain: bool = False
     
@@ -247,8 +247,8 @@ class TrainRLRequest(BaseModel):
 
 
 class FetchDataRequest(BaseModel):
-    symbols: List[str] = Field(..., min_length=1, max_length=100)
-    period: str = Field(default="2y")
+    symbols: List[str] = Field(default=["AAPL"], min_length=1, max_length=100, examples=[["AAPL", "GOOGL", "TCS.NS"]])
+    period: str = Field(default="2y", examples=["1mo", "6mo", "1y", "2y"])
     include_features: bool = False
     refresh: bool = False
     
