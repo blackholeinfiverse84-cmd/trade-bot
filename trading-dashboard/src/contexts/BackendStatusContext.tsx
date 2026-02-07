@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { config } from '../config';
 
 interface BackendStatusState {
   isOnline: boolean;
@@ -23,7 +24,7 @@ export const BackendStatusProvider: React.FC<{ children: React.ReactNode }> = ({
     setState(prev => ({ ...prev, status: 'CHECKING' }));
     
     try {
-      const response = await fetch('http://127.0.0.1:8000/tools/health');
+      const response = await fetch(`${config.API_BASE_URL}/tools/health`);
       const isOnline = response.ok;
       setState({
         isOnline,
