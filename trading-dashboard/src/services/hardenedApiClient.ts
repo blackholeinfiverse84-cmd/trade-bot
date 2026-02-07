@@ -1,12 +1,12 @@
 import axios, { AxiosResponse } from 'axios';
 import { validatePredictResponse, detectContractDrift, type StrictPredictResponse, type ContractDriftError } from '../validators/contractValidator';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_BACKEND_URL || 'http://127.0.0.1:8000';
 
 // FAILURE MODES - MUTUALLY EXCLUSIVE
-export type FailureMode = 
+export type FailureMode =
   | 'backend_unavailable'
-  | 'backend_error_response' 
+  | 'backend_error_response'
   | 'invalid_data'
   | 'contract_drift'
   | 'trust_gate_active';
@@ -46,13 +46,13 @@ export const hardenedAPI = {
         symbols,
         horizon,
       });
-      
+
       // STRICT VALIDATION - NO OPTIONAL CHAINING
       const validation = validatePredictResponse(response.data);
       const drift = detectContractDrift(response.data, validation);
-      
+
       logIntegration('POST /tools/predict', response.data, validation, drift);
-      
+
       // CONTRACT DRIFT DETECTION
       if (drift) {
         return {
@@ -63,7 +63,7 @@ export const hardenedAPI = {
           rawResponse: response.data
         };
       }
-      
+
       // VALIDATION FAILURE
       if (!validation.valid) {
         return {
@@ -73,13 +73,13 @@ export const hardenedAPI = {
           rawResponse: response.data
         };
       }
-      
+
       return {
         success: true,
         data: response.data as StrictPredictResponse,
         rawResponse: response.data
       };
-      
+
     } catch (error: any) {
       // BACKEND UNAVAILABLE
       if (!error.response) {
@@ -89,7 +89,7 @@ export const hardenedAPI = {
           error: 'Backend server is not reachable'
         };
       }
-      
+
       // BACKEND ERROR RESPONSE
       return {
         success: false,
@@ -102,7 +102,7 @@ export const hardenedAPI = {
   async health(): Promise<HardenedApiResult<{ status: string }>> {
     try {
       const response: AxiosResponse = await apiClient.get('/tools/health');
-      
+
       // STRICT VALIDATION
       if (!response.data || typeof response.data.status !== 'string') {
         return {
@@ -112,15 +112,15 @@ export const hardenedAPI = {
           rawResponse: response.data
         };
       }
-      
+
       logIntegration('GET /tools/health', response.data, { valid: true }, null);
-      
+
       return {
         success: true,
         data: response.data,
         rawResponse: response.data
       };
-      
+
     } catch (error: any) {
       if (!error.response) {
         return {
@@ -129,7 +129,7 @@ export const hardenedAPI = {
           error: 'Backend server is not reachable'
         };
       }
-      
+
       return {
         success: false,
         failureMode: 'backend_error_response',

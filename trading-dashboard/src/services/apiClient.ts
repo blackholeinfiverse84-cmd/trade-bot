@@ -1,6 +1,6 @@
 import axios, { AxiosResponse } from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_BACKEND_URL || 'http://127.0.0.1:8000';
 
 // Backend response types (exact match to backend)
 interface DataStatus {
@@ -77,7 +77,7 @@ function validateDataStatus(obj: any): obj is DataStatus {
 
 function validatePredictionResult(obj: any): obj is PredictionResult {
   if (!obj || typeof obj.symbol !== 'string') return false;
-  
+
   // Optional fields validation
   if (obj.data_status && !validateDataStatus(obj.data_status)) return false;
   if (obj.predicted_return !== undefined && typeof obj.predicted_return !== 'number') return false;
@@ -85,7 +85,7 @@ function validatePredictionResult(obj: any): obj is PredictionResult {
   if (obj.predicted_price !== undefined && typeof obj.predicted_price !== 'number') return false;
   if (obj.signal_strength !== undefined && typeof obj.signal_strength !== 'number') return false;
   if (obj.trust_gate_active !== undefined && typeof obj.trust_gate_active !== 'boolean') return false;
-  
+
   return true;
 }
 
@@ -102,11 +102,11 @@ function validatePredictResponse(obj: any): obj is PredictResponse {
 
 function validateFetchDataResult(obj: any): obj is FetchDataResult {
   if (!obj || typeof obj.symbol !== 'string') return false;
-  
+
   if (obj.data_status && !validateDataStatus(obj.data_status)) return false;
   if (obj.current_price !== undefined && typeof obj.current_price !== 'number') return false;
   if (obj.volume !== undefined && typeof obj.volume !== 'number') return false;
-  
+
   return true;
 }
 
@@ -126,10 +126,10 @@ function validateAnalyzeResponse(obj: any): obj is AnalyzeResponse {
     obj.metadata &&
     typeof obj.metadata.count === 'number' &&
     Array.isArray(obj.analysis) &&
-    obj.analysis.every((item: any) => 
-      item && 
-      typeof item.symbol === 'string' && 
-      Array.isArray(item.news) && 
+    obj.analysis.every((item: any) =>
+      item &&
+      typeof item.symbol === 'string' &&
+      Array.isArray(item.news) &&
       typeof item.sentiment === 'string'
     )
   );
@@ -161,11 +161,11 @@ export const backendAPI = {
       const response: AxiosResponse = await apiClient.get('/tools/health');
       const valid = validateHealthResponse(response.data);
       logResponse('GET /tools/health', response.data, valid);
-      
+
       if (!valid) {
         return { success: false, error: 'Invalid health response format' };
       }
-      
+
       return { success: true, data: response.data };
     } catch (error: any) {
       return { success: false, error: error.message || 'Health check failed' };
@@ -178,14 +178,14 @@ export const backendAPI = {
         symbols,
         horizon,
       });
-      
+
       const valid = validatePredictResponse(response.data);
       logResponse('POST /tools/predict', response.data, valid);
-      
+
       if (!valid) {
         return { success: false, error: 'Invalid predict response format' };
       }
-      
+
       return { success: true, data: response.data };
     } catch (error: any) {
       return { success: false, error: error.message || 'Prediction failed' };
@@ -198,14 +198,14 @@ export const backendAPI = {
         symbols,
         horizon: 'intraday',
       });
-      
+
       const valid = validateFetchDataResponse(response.data);
       logResponse('POST /tools/fetch_data', response.data, valid);
-      
+
       if (!valid) {
         return { success: false, error: 'Invalid fetch data response format' };
       }
-      
+
       return { success: true, data: response.data };
     } catch (error: any) {
       return { success: false, error: error.message || 'Fetch data failed' };
@@ -221,14 +221,14 @@ export const backendAPI = {
         capital_risk_pct: 1,
         drawdown_limit_pct: 5,
       });
-      
+
       const valid = validateAnalyzeResponse(response.data);
       logResponse('POST /tools/analyze', response.data, valid);
-      
+
       if (!valid) {
         return { success: false, error: 'Invalid analyze response format' };
       }
-      
+
       return { success: true, data: response.data };
     } catch (error: any) {
       return { success: false, error: error.message || 'Analysis failed' };
@@ -241,14 +241,14 @@ export const backendAPI = {
         symbols,
         horizon: 'intraday',
       });
-      
+
       const valid = response.data && typeof response.data.status === 'string' && typeof response.data.features_calculated === 'boolean';
       logResponse('POST /tools/calculate_features', response.data, valid);
-      
+
       if (!valid) {
         return { success: false, error: 'Invalid calculate features response format' };
       }
-      
+
       return { success: true, data: response.data };
     } catch (error: any) {
       return { success: false, error: error.message || 'Calculate features failed' };
@@ -261,14 +261,14 @@ export const backendAPI = {
         symbols,
         horizon: 'intraday',
       });
-      
+
       const valid = response.data && typeof response.data.status === 'string' && typeof response.data.models_trained === 'boolean';
       logResponse('POST /tools/train_models', response.data, valid);
-      
+
       if (!valid) {
         return { success: false, error: 'Invalid train models response format' };
       }
-      
+
       return { success: true, data: response.data };
     } catch (error: any) {
       return { success: false, error: error.message || 'Train models failed' };
