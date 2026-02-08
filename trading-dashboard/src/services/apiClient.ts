@@ -142,7 +142,7 @@ function validateHealthResponse(obj: any): obj is HealthResponse {
 // API client
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 120000,
+  timeout: 180000,
   headers: {
     'Content-Type': 'application/json',
   },

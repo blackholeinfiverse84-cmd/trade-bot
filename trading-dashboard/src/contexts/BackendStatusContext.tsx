@@ -22,20 +22,26 @@ export const BackendStatusProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const checkStatus = async () => {
     setState(prev => ({ ...prev, status: 'CHECKING' }));
-    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s when backend may be busy
+
     try {
-      const response = await fetch(`${config.API_BASE_URL}/tools/health`);
+      const response = await fetch(`${config.API_BASE_URL}/tools/health`, { signal: controller.signal });
+      clearTimeout(timeoutId);
       const isOnline = response.ok;
       setState({
         isOnline,
         isOffline: !isOnline,
         status: isOnline ? 'ONLINE' : 'OFFLINE'
       });
-    } catch {
+    } catch (e: any) {
+      clearTimeout(timeoutId);
+      // Timeout/abort = backend likely busy (e.g. long prediction), don't mark offline
+      const isTimeout = e?.name === 'AbortError';
       setState({
-        isOnline: false,
-        isOffline: true,
-        status: 'OFFLINE'
+        isOnline: isTimeout,
+        isOffline: !isTimeout,
+        status: isTimeout ? 'CHECKING' : 'OFFLINE'
       });
     }
   };

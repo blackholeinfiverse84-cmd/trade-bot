@@ -34,7 +34,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 120000, // 120 seconds (2 minutes) - predictions can take 60-90 seconds on first run
+  timeout: 300000, // 5 minutes - first run per symbol can take 2–4 min (fetch + features + model)
   withCredentials: false, // CORS is handled by backend
 });
 
@@ -535,7 +535,11 @@ export const stockAPI = {
         return { connected: true, data: error.response.data };
       }
 
-      isBackendOnline = false;
+      // Don't mark offline on timeout — backend may be busy with a long prediction
+      const isTimeout = error.code === 'ECONNABORTED' || error.message?.includes('timeout');
+      if (!isTimeout) {
+        isBackendOnline = false;
+      }
       connectionCheckInProgress = false;
 
       const errorMessage = error.code === 'ECONNREFUSED'
@@ -544,7 +548,7 @@ export const stockAPI = {
           ? 'Backend server is not responding. It may be starting up or overloaded.'
           : error.message || 'Unable to connect to backend server';
 
-      return { connected: false, error: errorMessage };
+      return { connected: isBackendOnline, error: errorMessage };
     }
   },
 
