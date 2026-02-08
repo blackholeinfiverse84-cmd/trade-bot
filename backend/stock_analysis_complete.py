@@ -1658,18 +1658,41 @@ class FeatureEngineer:
     
     def _calculate_volume_indicators(self, df: pd.DataFrame) -> pd.DataFrame:
         """Calculate volume indicators (7+ indicators)"""
+        fast_features = os.environ.get("FAST_FEATURES", "").strip().lower() in ("1", "true", "yes")
         print("[feat] volume: OBV...", flush=True)
         df['OBV'] = ta.obv(df['Close'], df['Volume'])
         print("[feat] volume: Volume_SMA_20...", flush=True)
         df['Volume_SMA_20'] = ta.sma(df['Volume'], length=20)
         print("[feat] volume: AD...", flush=True)
-        df['AD'] = ta.ad(df['High'], df['Low'], df['Close'], df['Volume'])
+        if fast_features:
+            # Fast path: pandas A/D line (avoids slow ta.ad on Render)
+            hl_range = (df['High'] - df['Low']).replace(0, np.nan)
+            mfm = ((df['Close'] - df['Low']) - (df['High'] - df['Close'])) / hl_range
+            df['AD'] = (mfm.fillna(0) * df['Volume']).cumsum()
+        else:
+            df['AD'] = ta.ad(df['High'], df['Low'], df['Close'], df['Volume'])
         print("[feat] volume: CMF...", flush=True)
-        df['CMF'] = ta.cmf(df['High'], df['Low'], df['Close'], df['Volume'], length=20)
+        if fast_features:
+            # Fast path: Chaikin Money Flow over 20 (pandas rolling)
+            hl_range = (df['High'] - df['Low']).replace(0, np.nan)
+            mfm = ((df['Close'] - df['Low']) - (df['High'] - df['Close'])) / hl_range
+            mfv = mfm.fillna(0) * df['Volume']
+            df['CMF'] = (mfv.rolling(20).sum() / (df['Volume'].rolling(20).sum() + 1e-10)).fillna(0)
+        else:
+            df['CMF'] = ta.cmf(df['High'], df['Low'], df['Close'], df['Volume'], length=20)
         print("[feat] volume: VROC...", flush=True)
-        df['VROC'] = ta.roc(df['Volume'], length=12)
+        if fast_features:
+            df['VROC'] = (df['Volume'].pct_change(12) * 100).fillna(0)
+        else:
+            df['VROC'] = ta.roc(df['Volume'], length=12)
         print("[feat] volume: EMV...", flush=True)
-        df['EMV'] = ta.eom(df['High'], df['Low'], df['Close'], df['Volume'], length=14)
+        if fast_features:
+            # Fast path: simple Ease of Movement approximation (distance / volume)
+            dm = ((df['High'] + df['Low']) / 2) - ((df['High'].shift(1) + df['Low'].shift(1)) / 2)
+            br = df['Volume'] / (df['High'] - df['Low'] + 1e-10)
+            df['EMV'] = (dm / br).rolling(14).mean().fillna(0)
+        else:
+            df['EMV'] = ta.eom(df['High'], df['Low'], df['Close'], df['Volume'], length=14)
         print("[feat] volume: volume_ratio, volume_trend...", flush=True)
         df['volume_ratio'] = df['Volume'] / (df['Volume_SMA_20'] + 1e-10)
         df['volume_trend'] = np.where(df['Volume'] > df['Volume_SMA_20'], 1, -1)
