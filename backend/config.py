@@ -40,6 +40,9 @@ UVICORN_HOST = os.getenv('UVICORN_HOST', '0.0.0.0')
 UVICORN_PORT = int(os.getenv('PORT', os.getenv('UVICORN_PORT', '8000')))
 DEBUG_MODE = os.getenv('DEBUG_MODE', 'False').lower() == 'true'
 
+# CORS: comma-separated list of allowed frontend origins (e.g. https://trade-bot-dashboard-llb8.onrender.com)
+CORS_ORIGINS_EXTRA = [x.strip() for x in os.getenv('CORS_ORIGINS', '').split(',') if x.strip()]
+
 # Directories
 DATA_DIR = Path("data")
 DATA_CACHE_DIR = DATA_DIR / "cache"
