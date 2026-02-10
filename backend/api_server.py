@@ -49,19 +49,35 @@ app = FastAPI(
 )
 
 # CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
+# Build CORS origins list
+if config.CORS_ALLOW_ALL:
+    # Allow all origins (useful for debugging)
+    cors_origins = ["*"]
+    allow_credentials = False  # Cannot use credentials with wildcard
+    logger.warning("CORS: Allowing all origins (CORS_ALLOW_ALL=true)")
+else:
+    cors_origins = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "https://trade-bot-frontend-halb.onrender.com",
         "https://trade-bot-dashboard-llb8.onrender.com",
         "https://trade-bot-dashboard-c9x3.onrender.com",
+        "https://trade-bot-api.onrender.com",
         *config.CORS_ORIGINS_EXTRA,
-    ],
-    allow_credentials=True,
+    ]
+    # Remove duplicates while preserving order
+    cors_origins = list(dict.fromkeys(cors_origins))
+    allow_credentials = True
+    logger.info(f"CORS: Allowing origins: {cors_origins}")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins,
+    allow_credentials=allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600,  # Cache preflight for 1 hour
 )
 
 # Logging setup with automatic rotation
