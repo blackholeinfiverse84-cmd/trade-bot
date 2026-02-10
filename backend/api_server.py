@@ -58,10 +58,14 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
+# CORS middleware - read origins from environment or use defaults
+import os
+cors_origins_env = os.getenv('CORS_ORIGINS', '')
+if cors_origins_env:
+    # Split by comma if multiple origins provided
+    allow_origins = [origin.strip() for origin in cors_origins_env.split(',')]
+else:
+    allow_origins = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "http://localhost:8000",
@@ -70,7 +74,11 @@ app.add_middleware(
         "http://127.0.0.1:5000",
         "https://trade-bot-dashboard-c9x3.onrender.com",
         "https://trade-bot-frontend-halb.onrender.com"
-    ],
+    ]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
