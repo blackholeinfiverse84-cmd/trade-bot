@@ -39,6 +39,24 @@ import config
 from config import LOGS_DIR
 from live_price_validator import LivePriceValidator
 
+# Logging setup with automatic rotation
+from logging.handlers import RotatingFileHandler
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        RotatingFileHandler(
+            str(LOGS_DIR / 'api_server.log'),  # Cross-platform path handling
+            maxBytes=10*1024*1024,  # 10 MB per file (prevents huge log files)
+            backupCount=5,           # Keep 5 backup files (max 60 MB total)
+            encoding='utf-8'
+        ),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+
 # Initialize FastAPI app
 app = FastAPI(
     title=config.API_TITLE,
@@ -80,23 +98,7 @@ app.add_middleware(
     max_age=3600,  # Cache preflight for 1 hour
 )
 
-# Logging setup with automatic rotation
-from logging.handlers import RotatingFileHandler
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        RotatingFileHandler(
-            str(LOGS_DIR / 'api_server.log'),  # Cross-platform path handling
-            maxBytes=10*1024*1024,  # 10 MB per file (prevents huge log files)
-            backupCount=5,           # Keep 5 backup files (max 60 MB total)
-            encoding='utf-8'
-        ),
-        logging.StreamHandler()
-    ]
-)
-logger = logging.getLogger(__name__)
 
 # Initialize MCP Adapter
 try:
