@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, TrendingUp, TrendingDown, Sparkles, Loader2, BarChart3, Newspaper, Zap } from 'lucide-react';
-import { POPULAR_STOCKS } from '../services/api';
+import { Search, TrendingUp, TrendingDown, Loader2, BarChart3, Newspaper, Zap, Sparkles } from 'lucide-react';
 import { formatUSDToINR } from '../utils/currencyConverter';
 import SymbolAutocomplete from './SymbolAutocomplete';
 import { useTheme } from '../contexts/ThemeContext';
@@ -238,43 +237,6 @@ const StocksView = ({
           )}
         </div>
 
-        <div>
-          <p className={`${
-            isLight ? 'text-gray-700' : isSpace ? 'text-gray-300' : 'text-gray-300'
-          } mb-3 font-medium flex items-center gap-2`}>
-            <Sparkles className={`w-4 h-4 ${
-              isLight ? 'text-blue-500' : isSpace ? 'text-blue-400 drop-shadow' : 'text-blue-400'
-            }`} />
-            Popular Stocks:
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {POPULAR_STOCKS.slice(0, 20).map((symbol) => (
-              <button
-                key={symbol}
-                onClick={() => {
-                  if (!isRequestInProgress) {
-                    if (import.meta.env.DEV) {
-                      console.log(`[TAB] Clicked: ${symbol}`);
-                      console.log(`[API] /tools/predict will be called for ${symbol}`);
-                    }
-                    setSearchQuery(symbol);
-                    handlePredict(symbol, true, false);
-                  }
-                }}
-                disabled={isRequestInProgress}
-                className={`px-3 py-1.5 ${
-                  isLight 
-                    ? 'bg-gray-200/50 text-gray-700 hover:bg-blue-500 hover:text-white' 
-                    : isSpace
-                      ? 'bg-slate-800/50 text-gray-300 hover:bg-white/10 hover:text-white drop-shadow'
-                      : 'bg-slate-700/50 text-gray-300 hover:bg-blue-500 hover:text-white'
-                } rounded-lg text-sm font-medium transition-all hover:scale-105`}
-              >
-                {symbol.replace('.NS', '')}
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
 
       {error && (
