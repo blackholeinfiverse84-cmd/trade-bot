@@ -3879,9 +3879,14 @@ def train_ml_models(symbol: str, horizon: str = "intraday", verbose: bool = True
         print(f"   Expected input shape: (batch_size, {len(feature_cols)})")
         print(f"   Feature columns saved: {len(feature_cols)} (will be used in prediction)")
     
-    # Train DQN with the properly prepared features (cap episodes on Render to avoid timeout/restart)
+    # Train DQN with the properly prepared features (cap episodes on Render so first request completes in ~1-2 min)
     _dqn_ep = os.environ.get("DQN_EPISODES", "").strip()
-    n_episodes = min(int(_dqn_ep), len(dqn_features_df)) if _dqn_ep.isdigit() else len(dqn_features_df)
+    if _dqn_ep.isdigit():
+        n_episodes = min(int(_dqn_ep), len(dqn_features_df))
+    else:
+        # On Render/server, cap at 50 so async predict job completes before frontend gives up; locally use full data
+        default_cap = 50 if os.environ.get("RENDER") else len(dqn_features_df)
+        n_episodes = min(default_cap, len(dqn_features_df))
     print(f"[train] DQN: train (episodes={n_episodes})...", flush=True)
     dqn_metrics = dqn_agent.train(dqn_features_df, returns_series, n_episodes=n_episodes)
     print("[train] DQN: train done", flush=True)

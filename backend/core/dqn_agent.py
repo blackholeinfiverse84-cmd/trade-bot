@@ -314,6 +314,9 @@ class DQNTradingAgent:
             if (episode + 1) % 10 == 0:
                 self.epsilon = max(self.epsilon_end, self.epsilon * self.epsilon_decay)
             
+            if (episode + 1) % 50 == 0:
+                logger.info(f"DQN training progress: episode {episode + 1}/{n_episodes}")
+            
             self.episode += 1
         
         self.episode_rewards = episode_rewards

@@ -125,6 +125,7 @@ def _run_predict_job(job_id: str, data: dict) -> None:
     try:
         with _predict_jobs_lock:
             _predict_jobs[job_id]["status"] = "running"
+        logger.info(f"Async predict job {job_id} started (symbols=%s, horizon=%s)", data.get("symbols"), data.get("horizon"))
         result = mcp_adapter.predict(
             symbols=data["symbols"],
             horizon=data["horizon"],
@@ -136,11 +137,13 @@ def _run_predict_job(job_id: str, data: dict) -> None:
         with _predict_jobs_lock:
             _predict_jobs[job_id]["status"] = "completed"
             _predict_jobs[job_id]["result"] = result
+        logger.info(f"Async predict job {job_id} completed successfully")
     except Exception as e:
         logger.exception(f"Async predict job {job_id} failed")
         with _predict_jobs_lock:
             _predict_jobs[job_id]["status"] = "failed"
             _predict_jobs[job_id]["error"] = str(e)
+        logger.error(f"Async predict job {job_id} marked failed: {e}")
 
 
 def _prune_old_jobs() -> None:
